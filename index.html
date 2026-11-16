@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>IME Roleplay • Player Online</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --card: #131a22;
+    --line: #1f2937;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --green: #22c55e;
+    --red: #ef4444;
+    --accent: #3b82f6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at top, #101826 0%, var(--bg) 60%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+  }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .3px; }
+  h1 span { color: var(--muted); font-weight: 400; font-size: 13px; display: block; margin-top: 4px; }
+  .pulse {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); margin-right: 6px;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,.6); }
+    50% { opacity: .6; box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+  }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .stat .value { font-size: 22px; font-weight: 700; margin-top: 6px; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  input[type="search"] {
+    flex: 1; min-width: 200px; background: var(--card); border: 1px solid var(--line);
+    color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: 14px; outline: none;
+  }
+  input[type="search"]:focus { border-color: var(--accent); }
+  button {
+    background: var(--card); color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 16px; cursor: pointer; font-size: 14px;
+    transition: .15s;
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { padding: 10px 14px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--line); }
+  th { background: #0f1620; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
+  .ping { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-family: ui-monospace, monospace; }
+  .ping.good { background: rgba(34,197,94,.15); color: var(--green); }
+  .ping.mid  { background: rgba(234,179,8,.15); color: #eab308; }
+  .ping.bad  { background: rgba(239,68,68,.15); color: var(--red); }
+  .empty { text-align: center; color: var(--muted); padding: 30px; }
+  .footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 10px; color: var(--muted); font-size: 12px; }
+  .pager { display: flex; gap: 8px; align-items: center; }
+  .pager span { font-size: 13px; color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>
+      IME ROLEPLAY <span id="gate-label">memuat gate…</span>
+    </h1>
+    <div>
+      <span class="pulse"></span>
+      <span id="status" style="font-size:13px;color:var(--muted)">Menghubungkan…</span>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Online</div>
+      <div class="value" id="online">—</div>
+    </div>
+    <div class="stat">
+      <div class="label">Slots</div>
+      <div class="value" id="max">—</div>
+    </div>
+    <div class="stat">
+      <div class="label">Terakhir Update</div>
+      <div class="value" id="updated" style="font-size:14px;font-weight:500">—</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="Cari nama atau ID player…" />
+    <button id="refresh">🔄 Refresh</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:60px">#</th>
+        <th>Nama</th>
+        <th style="width:100px">ID</th>
+        <th style="width:90px">Ping</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr><td colspan="4" class="empty">Memuat data…</td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <div>Auto-refresh tiap 60 detik</div>
+    <div class="pager">
+      <button id="prev">◀️ Prev</button>
+      <span id="pageInfo">1 / 1</span>
+      <button id="next">Next ▶️</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PAGE_SIZE = 25;
+let allPlayers = [];
+let filtered = [];
+let page = 0;
+let loading = false;
+
+const $ = (id) => document.getElementById(id);
+
+function pingClass(ms) {
+  if (ms < 80) return 'good';
+  if (ms < 150) return 'mid';
+  return 'bad';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function render() {
+  const tbody = $('tbody');
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (page >= totalPages) page = totalPages - 1;
+  if (page < 0) page = 0;
+
+  const start = page * PAGE_SIZE;
+  const slice = filtered.slice(start, start + PAGE_SIZE);
+
+  if (!slice.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty">${allPlayers.length ? 'Tidak ada hasil pencarian.' : 'Tidak ada player online.'}</td></tr>`;
+  } else {
+    tbody.innerHTML = slice.map((p, i) => {
+      const num = String(start + i + 1).padStart(3, '0');
+      return `<tr>
+        <td class="mono">${num}</td>
+        <td>${escapeHtml(p.name)}</td>
+        <td class="mono">${p.id}</td>
+        <td><span class="ping ${pingClass(p.ping)}">${p.ping} ms</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  $('pageInfo').textContent = `${page + 1} / ${totalPages}`;
+  $('prev').disabled = page <= 0;
+  $('next').disabled = page >= totalPages - 1;
+}
+
+function applyFilter() {
+  const q = $('search').value.trim().toLowerCase();
+  filtered = q
+    ? allPlayers.filter(p =>
+        p.name.toLowerCase().includes(q) || String(p.id).includes(q))
+    : allPlayers;
+  page = 0;
+  render();
+}
+
+async function load() {
+  if (loading) return;
+  loading = true;
+  $('status').textContent = 'Memuat…';
+
+  try {
+    const res = await fetch('/api/players', { cache: 'no-store' });
+    const data = await res.json();
+
+    if (!data.ok) throw new Error(data.error || 'Gagal mengambil data');
+
+    allPlayers = data.players || [];
+    $('online').textContent = data.online.toLocaleString('id-ID');
+    $('max').textContent = data.max.toLocaleString('id-ID');
+    $('gate-label').textContent = `• ${data.gate}`;
+    $('updated').textContent = new Date(data.updatedAt).toLocaleTimeString('id-ID');
+    $('status').textContent = 'Online';
+    $('status').style.color = 'var(--green)';
+
+    applyFilter();
+  } catch (err) {
+    $('status').textContent = 'Error: ' + err.message;
+    $('status').style.color = 'var(--red)';
+  } finally {
+    loading = false;
+  }
+}
+
+$('refresh').addEventListener('click', load);
+$('search').addEventListener('input', applyFilter);
+$('prev').addEventListener('click', () => { page--; render(); });
+$('next').addEventListener('click', () => { page++; render(); });
+
+load();
+setInterval(load, 60_000);
+</script>
+</body>
+</html>
